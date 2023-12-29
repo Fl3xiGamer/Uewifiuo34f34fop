@@ -55,6 +55,9 @@ var httpClient = &http.Client{
 	Timeout: time.Second * 10, // Set a reasonable timeout
 }
 
+// Add a global variable for the blacklist
+var blacklist = []string{"chamber", "skin", "travel"}
+
 func getReducedPage(page int64) ReducedResponse {
 	resp, err := httpClient.Get(fmt.Sprintf("https://api.hypixel.net/skyblock/auctions?page=%d", page))
 	if err != nil {
@@ -133,6 +136,12 @@ func update() {
 					auction := response.Auctions[i]
 					if auction.Start >= lastUpdated {
 						id := idFromItemBytes(auction.Item_bytes)
+
+						// Check if the item is in the blacklist
+						if isBlacklisted(auction.Item_name) {
+							continue
+						}
+
 						profit := lowBin[id] - float64(auction.Starting_bid)
 
 						// Calculate taxes
@@ -179,6 +188,16 @@ func update() {
 	} else {
 		fmt.Print("No Update\n")
 	}
+}
+
+// isBlacklisted checks if the item contains any word from the blacklist
+func isBlacklisted(itemName string) bool {
+	for _, word := range blacklist {
+		if strings.Contains(strings.ToLower(itemName), strings.ToLower(word)) {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
